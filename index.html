@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz de Recepção - PET-ACE</title>
+    
+    <!-- PWA: Configurações e Ícones -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f2027">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Quiz PET">
+    <!-- Ícone provisório em SVG (pode substituir por uma imagem .png no GitHub depois) -->
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/graduation-cap.svg">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-option {
+            transition: all 0.3s ease;
+        }
+        
+        .btn-option:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-option.correct {
+            background: rgba(34, 197, 94, 0.8) !important; /* Green-500 */
+            border-color: #16a34a;
+            color: white;
+        }
+
+        .btn-option.wrong {
+            background: rgba(239, 68, 68, 0.8) !important; /* Red-500 */
+            border-color: #dc2626;
+            color: white;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+    </style>
+</head>
+<body class="items-center justify-center p-4">
+
+    <!-- Container Principal -->
+    <main id="app-container" class="w-full max-w-2xl mx-auto mt-10 lg:mt-20">
+        
+        <!-- TELA INICIAL -->
+        <section id="screen-start" class="glass-panel rounded-3xl p-8 text-center fade-in">
+            <div class="flex justify-center mb-6">
+                <i data-lucide="graduation-cap" class="w-20 h-20 text-blue-400"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                Bem-vindos, Calouros!
+            </h1>
+            <p class="text-lg md:text-xl mb-8 text-gray-200">
+                Escolha o seu curso para iniciar o desafio de conhecimentos do <strong class="text-white">PET-ACE</strong>:
+            </p>
+            
+            <!-- Menu de Seleção de Cursos -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                <button onclick="startGame('Administração')" class="bg-gradient-to-b from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600 text-white p-6 rounded-2xl flex flex-col items-center justify-center gap-3 shadow-lg transform transition hover:-translate-y-2">
+                    <i data-lucide="briefcase" class="w-10 h-10"></i>
+                    <span class="font-bold text-xl">Administração</span>
+                </button>
+
+                <button onclick="startGame('Contabilidade')" class="bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white p-6 rounded-2xl flex flex-col items-center justify-center gap-3 shadow-lg transform transition hover:-translate-y-2">
+                    <i data-lucide="calculator" class="w-10 h-10"></i>
+                    <span class="font-bold text-xl">Contabilidade</span>
+                </button>
+
+                <button onclick="startGame('Economia')" class="bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white p-6 rounded-2xl flex flex-col items-center justify-center gap-3 shadow-lg transform transition hover:-translate-y-2">
+                    <i data-lucide="trending-up" class="w-10 h-10"></i>
+                    <span class="font-bold text-xl">Economia</span>
+                </button>
+            </div>
+
+            <!-- Botão de Instalação PWA (Oculto por padrão, ativado via JS) -->
+            <button id="btn-install" class="hidden mt-8 w-full md:w-auto mx-auto bg-white/10 hover:bg-white/20 text-white font-bold py-3 px-8 rounded-xl border border-white/20 flex items-center justify-center transition">
+                <i data-lucide="download" class="w-5 h-5 mr-2"></i> Instalar App PET-ACE
+            </button>
+        </section>
+
+        <!-- TELA DO JOGO -->
+        <section id="screen-game" class="hidden glass-panel rounded-3xl p-6 md:p-8 fade-in">
+            <!-- Header do Jogo -->
+            <div class="flex justify-between items-center mb-6 border-b border-gray-500 pb-4">
+                <div class="flex items-center space-x-2">
+                    <span class="bg-blue-600 text-sm font-bold px-3 py-1 rounded-full" id="area-badge">Área</span>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-300">Questão <span id="current-q-num">1</span> de <span id="total-q-num">10</span></p>
+                    <p class="font-bold text-emerald-400">Pontuação: <span id="score-display">0</span></p>
+                </div>
+            </div>
+
+            <!-- Progresso -->
+            <div class="w-full bg-gray-700 rounded-full h-2.5 mb-8">
+                <div id="progress-bar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: 10%"></div>
+            </div>
+
+            <!-- Pergunta -->
+            <h2 id="question-text" class="text-2xl md:text-3xl font-semibold mb-8 min-h-[5rem]">
+                Carregando pergunta...
+            </h2>
+
+            <!-- Opções -->
+            <div id="options-container" class="grid grid-cols-1 gap-4">
+                <!-- Botões gerados via JS -->
+            </div>
+        </section>
+
+        <!-- TELA DE RESULTADOS -->
+        <section id="screen-result" class="hidden glass-panel rounded-3xl p-8 text-center fade-in">
+            <div class="flex justify-center mb-6">
+                <i data-lucide="award" class="w-24 h-24 text-yellow-400"></i>
+            </div>
+            <h2 class="text-4xl font-bold mb-2">Fim de Jogo!</h2>
+            <p class="text-xl mb-6 text-gray-300" id="result-message">Analisando seu desempenho...</p>
+            
+            <div class="bg-white/10 rounded-2xl p-6 mb-8 inline-block">
+                <p class="text-gray-300 text-lg uppercase tracking-wider mb-1">Pontuação Final</p>
+                <p class="text-6xl font-bold text-emerald-400"><span id="final-score">0</span><span class="text-3xl text-gray-400">/70</span></p>
+            </div>
+
+            <div class="text-left bg-blue-900/40 p-5 rounded-xl border border-blue-500/30 mb-8">
+                <h3 class="font-bold text-blue-300 text-lg mb-2 flex items-center">
+                    <i data-lucide="info" class="w-5 h-5 mr-2"></i> Conheça o PET-ACE
+                </h3>
+                <p class="text-sm text-gray-200">
+                    O <strong>Programa de Educação Tutorial (PET)</strong> integra Ensino, Pesquisa e Extensão. Na Unespar (Campo Mourão), o PET-ACE une alunos de Administração, Contabilidade e Economia para desenvolver projetos incríveis, combater a evasão e impactar a nossa região. Fique ligado nas seleções!
+                </p>
+            </div>
+
+            <!-- Botão Atualizado para Voltar ao Menu -->
+            <button onclick="showMenu()" class="bg-white text-gray-900 hover:bg-gray-200 font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition hover:scale-105 active:scale-95">
+                <i data-lucide="layout-grid" class="inline w-5 h-5 mr-2"></i> Voltar ao Menu
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="mt-auto py-6 text-center text-gray-400 text-sm w-full">
+        <p>Desenvolvido para a Recepção dos Calouros da UNESPAR</p>
+        <p class="font-bold text-white mt-1">PET-ACE - Administração, Contabilidade e Economia</p>
+    </footer>
+
+    <!-- PWA: Registro do Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA: Service Worker registrado com sucesso!', reg.scope))
+                    .catch(err => console.error('PWA: Falha ao registrar Service Worker', err));
+            });
+        }
+    </script>
+
+    <script>
+        // Inicializa os ícones do Lucide
+        lucide.createIcons();
+
+        // Banco de Perguntas Separado por Curso
+        const quizData = {
+            "Administração": [
+                {
+                    area: "Administração",
+                    badgeColor: "bg-purple-600",
+                    question: "Na essência, o que um Administrador faz em uma empresa?",
+                    options: [
+                        "Apenas assina os papéis de demissão",
+                        "Organiza recursos, planeja o futuro e lidera pessoas",
+                        "Fica responsável apenas por vender os produtos",
+                        "Conserta os computadores do escritório"
+                    ],
+                    correct: 1
+                },
+                {
+                    area: "Administração",
+                    badgeColor: "bg-purple-600",
+                    question: "Qual destas características é fundamental para um bom líder?",
+                    options: [
+                        "Saber inspirar, ouvir e guiar a sua equipa",
+                        "Ser a pessoa que grita mais alto na reunião",
+                        "Fazer todo o trabalho sozinho para evitar erros",
+                        "Saber fazer café melhor que a máquina do refeitório"
+                    ],
+                    correct: 0
+                },
+                {
+                    area: "Administração",
+                    badgeColor: "bg-purple-600",
+                    question: "Quando uma loja faz uma grande promoção de 'Black Friday', ela está aplicando uma estratégia da área de...",
+                    options: [
+                        "Recursos Humanos (RH)",
+                        "Contabilidade de Custos",
+                        "Marketing e Vendas",
+                        "Tecnologia da Informação (TI)"
+                    ],
+                    correct: 2
+                },
+                {
+                    area: "Administração",
+                    badgeColor: "bg-purple-600",
+                    question: "Se a equipa está desmotivada, o que a área de Gestão de Pessoas (RH) deve fazer?",
+                    options: [
+                        "Ignorar e esperar que o problema passe sozinho",
+                        "Compreender os motivos e procurar formas de aumentar o engajamento",
+                        "Despedir todos imediatamente e contratar robôs",
+                        "Dar ainda mais trabalho para eles esquecerem a tristeza"
+                    ],
+                    correct: 1
+                },
+                {
+                    area: "Administração",
+                    badgeColor: "bg-purple-600",
+                    question: "O que significa ser 'empreendedor' no mercado atual?",
+                    options: [
+                        "Apenas ter um registo oficial de abertura de empresa",
+                        "Identificar problemas e criar soluções inovadoras que geram valor",
+                        "Trabalhar menos e ganhar muito mais sem esforço",
+                        "Copiar exatamente o que a empresa vizinha faz"
+                    ],
+                    correct: 1
+                }
+            ],
+            "Contabilidade": [
+                {
+                    area: "Contabilidade",
+                    badgeColor: "bg-blue-600",
+                    question: "De forma bem simples, o que significa ter 'Lucro' em um negócio?",
+                    options: [
+                        "Quando as despesas são maiores que as vendas",
+                        "Quando a empresa consegue pagar o salário do chefe",
+                        "O dinheiro que sobra após pagar todos os custos e despesas",
+                        "O valor total que entrou no caixa, sem descontar nada"
+                    ],
+                    correct: 2
+                },
+                {
+                    area: "Contabilidade",
+                    badgeColor: "bg-blue-600",
+                    question: "Qual é uma das principais funções do profissional de Contabilidade?",
+                    options: [
+                        "Criar os logotipos e as marcas das empresas",
+                        "Registar, organizar e analisar as finanças e o património da empresa",
+                        "Cuidar das redes sociais da organização",
+                        "Decidir qual produto novo vai ser inventado amanhã"
+                    ],
+                    correct: 1
+                },
+                {
+                    area: "Contabilidade",
+                    badgeColor: "bg-blue-600",
+                    question: "Se a sua empresa gastou R$ 1.000 para funcionar neste mês, mas só conseguiu vender R$ 800, ela teve um...",
+                    options: [
+                        "Lucro astronómico",
+                        "Empate financeiro",
+                        "Prejuízo de R$ 200",
+                        "Aumento de capital investido"
+                    ],
+                    correct: 2
+                },
+                {
+                    area: "Contabilidade",
+                    badgeColor: "bg-blue-600",
+                    question: "Quem é o famoso 'Leão' com quem os contabilistas (e todos nós) lidam anualmente?",
+                    options: [
+                        "O mascote da nossa universidade",
+                        "A Receita Federal, através da Declaração do Imposto de Rendimento",
+                        "O dono ou diretor principal da empresa",
+                        "O gerente do banco quando vamos pedir um empréstimo"
+                    ],
+                    correct: 1
+                },
+                {
+                    area: "Contabilidade",
+                    badgeColor: "bg-blue-600",
+                    question: "Se a empresa compra um carro a prestações (financiado), para a contabilidade ela adquiriu...",
+                    options: [
+                        "Apenas um bem (o carro)",
+                        "Um bem (o carro) e também uma obrigação/dívida (o financiamento)",
+                        "Um prejuízo financeiro irrecuperável",
+                        "Um lucro imediato e direto"
+                    ],
+                    correct: 1
+                }
+            ],
+            "Economia": [
+                {
+                    area: "Economia",
+                    badgeColor: "bg-emerald-600",
+                    question: "O que costuma acontecer com o preço do tomate quando uma forte tempestade destrói grande parte das plantações?",
+                    options: [
+                        "O preço cai, porque o tomate fica estragado",
+                        "O preço não muda, porque o governo congela o valor",
+                        "O preço sobe, pois há pouco tomate para muita gente a querer comprar",
+                        "O tomate passa a ser distribuído de graça nos mercados"
+                    ],
+                    correct: 2
+                },
+                {
+                    area: "Economia",
+                    badgeColor: "bg-emerald-600",
+                    question: "Nos jornais, sempre ouvimos falar de 'Inflação'. O que isso significa no nosso dia a dia?",
+                    options: [
+                        "O aumento geral e contínuo dos preços dos produtos e serviços",
+                        "O aumento do tamanho das embalagens no supermercado",
+                        "A diminuição imediata do valor dos impostos",
+                        "Quando o seu salário rende mais no final do mês"
+                    ],
+                    correct: 0
+                },
+                {
+                    area: "Economia",
+                    badgeColor: "bg-emerald-600",
+                    question: "Por que as pessoas costumam guardar dinheiro na Poupança ou em Investimentos em vez de deixar guardado em casa?",
+                    options: [
+                        "Porque o colchão fica muito duro para dormir",
+                        "Para proteger o dinheiro da inflação e fazê-lo render juros",
+                        "Porque é proibido por lei guardar qualquer valor em casa",
+                        "Apenas para o gerente do banco bater a meta do mês"
+                    ],
+                    correct: 1
+                },
+                {
+                    area: "Economia",
+                    badgeColor: "bg-emerald-600",
+                    question: "Se o Dólar sobe muito em relação à nossa moeda, o que costuma acontecer aos produtos importados?",
+                    options: [
+                        "Ficam muito mais baratos para nós",
+                        "Ficam mais caros para nós, pois precisamos de mais dinheiro para comprá-los",
+                        "O preço não sofre qualquer alteração",
+                        "Eles desaparecem das prateleiras e lojas físicas"
+                    ],
+                    correct: 1
+                },
+                {
+                    area: "Economia",
+                    badgeColor: "bg-emerald-600",
+                    question: "Na economia de um país, para que servem (ou deveriam servir) os impostos arrecadados pelo Governo?",
+                    options: [
+                        "Para o governo guardar e trancar num grande cofre",
+                        "Para financiar serviços públicos como saúde, educação e infraestrutura",
+                        "Apenas para imprimir mais dinheiro quando necessário",
+                        "Para enviar como presente a países vizinhos"
+                    ],
+                    correct: 1
+                }
+            ]
+        };
+
+        // Variáveis de Estado
+        let currentCategory = "";
+        let currentQuestion = 0;
+        let score = 0;
+        let acceptingAnswers = true;
+
+        // Elementos do DOM
+        const screenStart = document.getElementById('screen-start');
+        const screenGame = document.getElementById('screen-game');
+        const screenResult = document.getElementById('screen-result');
+        
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const progressNum = document.getElementById('current-q-num');
+        const totalNum = document.getElementById('total-q-num');
+        const progressBar = document.getElementById('progress-bar');
+        const scoreDisplay = document.getElementById('score-display');
+        const areaBadge = document.getElementById('area-badge');
+
+        function startGame(category) {
+            currentCategory = category;
+            currentQuestion = 0;
+            score = 0;
+            scoreDisplay.innerText = score;
+            totalNum.innerText = quizData[currentCategory].length;
+
+            screenStart.classList.add('hidden');
+            screenResult.classList.add('hidden');
+            screenGame.classList.remove('hidden');
+            
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            acceptingAnswers = true;
+            const currentQ = quizData[currentCategory][currentQuestion];
+            
+            // Atualiza UI
+            progressNum.innerText = currentQuestion + 1;
+            progressBar.style.width = `${((currentQuestion + 1) / quizData[currentCategory].length) * 100}%`;
+            questionText.innerText = currentQ.question;
+            
+            areaBadge.innerText = currentQ.area;
+            areaBadge.className = `text-sm font-bold px-3 py-1 rounded-full ${currentQ.badgeColor}`;
+
+            // Limpa opções antigas
+            optionsContainer.innerHTML = '';
+
+            // Cria os botões de opção
+            currentQ.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.innerText = option;
+                button.className = 'btn-option w-full text-left bg-white/5 border border-white/10 p-4 rounded-xl text-lg hover:bg-white/10 focus:outline-none';
+                button.dataset.index = index;
+                button.onclick = () => handleAnswer(button, index);
+                optionsContainer.appendChild(button);
+            });
+            
+            // Reinicia a animação
+            screenGame.classList.remove('fade-in');
+            void screenGame.offsetWidth;
+            screenGame.classList.add('fade-in');
+        }
+
+        function handleAnswer(selectedButton, selectedIndex) {
+            if (!acceptingAnswers) return;
+            acceptingAnswers = false;
+
+            const currentQ = quizData[currentCategory][currentQuestion];
+            const isCorrect = selectedIndex === currentQ.correct;
+
+            // Encontra o botão correto
+            const allButtons = optionsContainer.querySelectorAll('button');
+            const correctButton = allButtons[currentQ.correct];
+
+            if (isCorrect) {
+                selectedButton.classList.add('correct');
+                score += 10;
+                scoreDisplay.innerText = score;
+            } else {
+                selectedButton.classList.add('wrong');
+                correctButton.classList.add('correct'); // Mostra a certa também
+            }
+
+            // Aguarda um pouco e passa para a próxima pergunta
+            setTimeout(() => {
+                currentQuestion++;
+                if (currentQuestion < quizData[currentCategory].length) {
+                    loadQuestion();
+                } else {
+                    endGame();
+                }
+            }, 1500);
+        }
+
+        function endGame() {
+            screenGame.classList.add('hidden');
+            screenResult.classList.remove('hidden');
+            
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-score').nextSibling.textContent = `/${quizData[currentCategory].length * 10}`;
+            
+            const resultMsg = document.getElementById('result-message');
+            const percentage = score / (quizData[currentCategory].length * 10);
+
+            if (percentage === 1) {
+                resultMsg.innerHTML = `🏆 <strong>Perfeito!</strong> Gabaritou as perguntas de ${currentCategory}!`;
+            } else if (percentage >= 0.6) {
+                resultMsg.innerHTML = `🌟 <strong>Muito bem!</strong> Você já tem uma ótima base em ${currentCategory}.`;
+            } else {
+                resultMsg.innerHTML = `📚 <strong>Sem problemas!</strong> É para isso que a faculdade serve. Prepare-se para aprender muito sobre ${currentCategory}!`;
+            }
+            
+            // Reinicia a animação e ícones
+            screenResult.classList.remove('fade-in');
+            void screenResult.offsetWidth;
+            screenResult.classList.add('fade-in');
+            lucide.createIcons();
+        }
+
+        // Nova função para retornar à tela inicial
+        function showMenu() {
+            screenResult.classList.add('hidden');
+            screenGame.classList.add('hidden');
+            screenStart.classList.remove('hidden');
+            
+            screenStart.classList.remove('fade-in');
+            void screenStart.offsetWidth;
+            screenStart.classList.add('fade-in');
+        }
+
+        // --- LÓGICA DO PWA (Instalação e Service Worker) ---
+        
+        // 1. Registo do Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registado com sucesso.', reg))
+                    .catch(err => console.log('Falha ao registar o Service Worker.', err));
+            });
+        }
+
+        // 2. Lógica do Botão de Instalação
+        let deferredPrompt;
+        const btnInstall = document.getElementById('btn-install');
+
+        // Captura o evento nativo que permite a instalação
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Previne o mini-infobar de aparecer automaticamente no mobile
+            e.preventDefault();
+            // Guarda o evento para ser acionado ao clicar no botão
+            deferredPrompt = e;
+            // Torna o nosso botão visível
+            btnInstall.classList.remove('hidden');
+        });
+
+        // Quando o aluno clica em "Instalar App"
+        btnInstall.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // Mostra a janela de instalação nativa
+                deferredPrompt.prompt();
+                // Aguarda a resposta do utilizador
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('Utilizador aceitou a instalação do PWA');
+                }
+                // Limpa o evento
+                deferredPrompt = null;
+                // Oculta o botão novamente
+                btnInstall.classList.add('hidden');
+            }
+        });
+
+        // Se a app for instalada com sucesso, esconde o botão
+        window.addEventListener('appinstalled', () => {
+            btnInstall.classList.add('hidden');
+            console.log('PWA instalado com sucesso!');
+        });
+    </script>
+</body>
+</html>
