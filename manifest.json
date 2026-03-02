@@ -3,7 +3,7 @@
   "short_name": "Quiz PET",
   "description": "Game Quiz interativo para os calouros dos cursos de Administração, Contabilidade e Economia da UNESPAR.",
   "start_url": "./index.html",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#0f2027",
   "theme_color": "#0f2027",
   "orientation": "portrait",
